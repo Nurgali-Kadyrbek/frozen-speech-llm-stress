@@ -1,0 +1,47 @@
+transformers==4.51.3, torch==2.6.0+cu124
+CUDA_VISIBLE_DEVICES=6
+  std_8B=0.02205, ||row||_2 mean=1.3758, d_llm=4096
+
+========================================================================
+  Loading frozen LLM (Qwen/Qwen3-8B) in bf16
+========================================================================
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:00<00:00, 179.71it/s]
+  loaded in 6.7s
+
+========================================================================
+  Loading frozen speech encoder (microsoft/wavlm-large) in bf16
+========================================================================
+
+========================================================================
+  Building adapter with calibrated init (target ratio band (0.5, 2.0))
+========================================================================
+  trainable params = 83.91M
+
+========================================================================
+  Loading data pool
+========================================================================
+  Stress-17K probe-train rows: 3629
+  LibriSpeech sampled rows:    6000
+  Expresso sampled rows:       5799
+
+========================================================================
+  Training (seed=1235, max_steps=300, grad_accum=32)
+========================================================================
+/raid/nurgaly/conda_envs/BTA/lib/python3.10/site-packages/torch/nn/functional.py:5962: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  warnings.warn(
+  step    1 lr=2.00e-07  L_task=5.338  L_KL=3.482  L_R0=8.820  ratio=1.42  grad_norm=18.72  sps=5.97
+  step   25 lr=5.00e-06  L_task=4.841  L_KL=2.953  L_R0=7.794  ratio=1.42  grad_norm=12.24  sps=8.01
+  step   50 lr=1.00e-05  L_task=3.908  L_KL=2.570  L_R0=6.478  ratio=1.40  grad_norm=3.09  sps=8.11
+  step   75 lr=1.50e-05  L_task=3.632  L_KL=2.537  L_R0=6.169  ratio=1.39  grad_norm=6.33  sps=8.02
+  step  100 lr=2.00e-05  L_task=3.502  L_KL=2.684  L_R0=6.186  ratio=1.37  grad_norm=9.74  sps=8.04
+  step  125 lr=2.50e-05  L_task=3.306  L_KL=2.561  L_R0=5.867  ratio=1.36  grad_norm=5.67  sps=8.07
+  step  150 lr=3.00e-05  L_task=3.112  L_KL=2.470  L_R0=5.582  ratio=1.35  grad_norm=5.36  sps=8.07
+  step  175 lr=3.50e-05  L_task=3.170  L_KL=2.607  L_R0=5.777  ratio=1.35  grad_norm=5.23  sps=8.06
+  step  200 lr=4.00e-05  L_task=3.101  L_KL=2.493  L_R0=5.594  ratio=1.35  grad_norm=5.75  sps=8.07
+  step  225 lr=4.50e-05  L_task=3.086  L_KL=2.368  L_R0=5.454  ratio=1.35  grad_norm=6.20  sps=8.02
+  step  250 lr=5.00e-05  L_task=3.039  L_KL=2.492  L_R0=5.531  ratio=1.35  grad_norm=8.17  sps=8.04
+  step  275 lr=2.70e-05  L_task=3.284  L_KL=2.417  L_R0=5.702  ratio=1.35  grad_norm=9.45  sps=8.03
+  step  300 lr=1.05e-06  L_task=3.059  L_KL=2.324  L_R0=5.383  ratio=1.35  grad_norm=4.36  sps=8.01
+
+  done: 300 optimizer steps over 1198.2s  (8.01 samples/s)
+  saved → /home/nurgaly/experiment/Beyond_Transcript_Alignment/outputs/stage2/A_BLSP_seed1235.pt  (335.6 MB)

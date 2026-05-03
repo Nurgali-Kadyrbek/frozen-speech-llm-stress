@@ -1,0 +1,13 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "n_items": 202,
+  "n_correct": 146,
+  "accuracy": 0.7227722772277227,
+  "signed_margin_mean": 2.523386359644136,
+  "signed_margin_ci_lo": 1.9079418447084777,
+  "signed_margin_ci_hi": 3.164365001729304,
+  "ci_level": 0.95,
+  "bootstrap_n_iter": 1000,
+  "decision": "SWITCH_8B",
+  "decision_note": "accuracy < 0.75 OR signed-margin CI overlaps 0"
+}

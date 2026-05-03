@@ -1,0 +1,109 @@
+transformers==4.51.3, torch==2.6.0+cu124
+CUDA_VISIBLE_DEVICES=6
+  std_8B=0.02205 (cached, kickoff R2)
+
+========================================================================
+  Loading frozen LLM (Qwen/Qwen3-8B) in bf16
+========================================================================
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:00<00:00, 174.85it/s]
+  loaded in 7.2s, d_llm=4096
+
+========================================================================
+  Loading frozen speech encoder (microsoft/wavlm-large) in bf16
+========================================================================
+
+========================================================================
+  Building adapter with calibrated init
+========================================================================
+  adapter trainable params = 83.91M
+
+========================================================================
+  Building C_phi heads (full + T-only)
+========================================================================
+  C_phi_full params  = 3.15M
+  C_phi_t_only params = 2.10M
+Building B1 phi-word embed cache (will be populated below after data load)…
+
+========================================================================
+  Loading data pools
+========================================================================
+  Stress-17K probe-train pool: 3629 rows
+  LibriSpeech sampled: 6000 rows
+  Expresso sampled:    5799 rows
+  cf_pairs_train:    3666
+  cf_pairs_artifact: 6846
+  phi_word_embed_cache: 512 entries
+  paired (q_pos, q_neg) cos-sim (n=500 cf pairs):
+    mean=0.641  median=0.645  min=0.546  max=0.739  frac>0.95=0.00%  frac>0.85=0.00%
+  (gate: mean ≤ 0.85)
+  ✓ cos-sim gate PASS (mean 0.641 ≤ 0.85)
+  microbatch plan (32 per cycle): cf=16, stress_ind=7, libri=5, expresso=4
+  aug: apply_prob=1.0, codec_choices=('mu_law', 'mp3_64', 'mp3_128', 'opus_24', 'opus_48'), rms_norm=0.05
+
+========================================================================
+  Training (seed=1237, max_steps=400, grad_accum=32)
+========================================================================
+/raid/nurgaly/conda_envs/BTA/lib/python3.10/site-packages/torch/nn/functional.py:5962: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  warnings.warn(
+  step    1 lr=1.67e-07  L_task=24.637  L_KL=2.546  L_cf=5.506  L_art=0.101  L_cond=2.541  L_t=2.579  L_NCE=0.694  ratio=1.43  gnorm=128.78  sps=4.50
+  step   10 lr=1.67e-06  L_task=24.465  L_KL=2.288  L_cf=4.316  L_art=0.000  L_cond=2.558  L_t=2.572  L_NCE=0.694  ratio=1.43  gnorm=100.02  sps=5.72
+  step   20 lr=3.33e-06  L_task=20.031  L_KL=1.922  L_cf=3.667  L_art=0.000  L_cond=2.564  L_t=2.568  L_NCE=0.698  ratio=1.43  gnorm=114.91  sps=5.76
+  step   30 lr=5.00e-06  L_task=14.238  L_KL=1.712  L_cf=2.240  L_art=0.000  L_cond=2.552  L_t=2.579  L_NCE=0.697  ratio=1.42  gnorm=85.59  sps=5.78
+  step   40 lr=6.67e-06  L_task=9.998  L_KL=1.734  L_cf=0.995  L_art=0.000  L_cond=2.562  L_t=2.560  L_NCE=0.697  ratio=1.41  gnorm=50.79  sps=5.75
+  [grad-norm @ 50] L_task=87.86  L_KL=221.25  L_cf=99.40  L_cond_pred=0.19  L_NCE_cond=7.25  L_BLSP=309.12
+  [cos-contrib @ 50] L_task=0.691  L_KL=0.389  L_cf=0.918  L_cond_pred=0.009  L_NCE_cond=-0.002  clip_fires=True  total_norm=602.92
+  step   50 lr=8.33e-06  L_task=4.794  L_KL=3.049  L_cf=0.980  L_art=0.000  L_cond=2.554  L_t=2.585  L_NCE=0.700  ratio=1.41  gnorm=97.78  sps=5.74
+  step   60 lr=1.00e-05  L_task=4.471  L_KL=2.299  L_cf=0.810  L_art=0.000  L_cond=2.542  L_t=2.559  L_NCE=0.695  ratio=1.41  gnorm=40.84  sps=5.75
+  step   70 lr=1.17e-05  L_task=3.552  L_KL=1.953  L_cf=0.877  L_art=0.000  L_cond=2.544  L_t=2.554  L_NCE=0.701  ratio=1.40  gnorm=49.39  sps=5.74
+  step   80 lr=1.33e-05  L_task=3.251  L_KL=1.987  L_cf=0.838  L_art=0.000  L_cond=2.518  L_t=2.544  L_NCE=0.699  ratio=1.40  gnorm=27.12  sps=5.72
+  step   90 lr=1.50e-05  L_task=2.749  L_KL=2.147  L_cf=0.749  L_art=0.000  L_cond=2.501  L_t=2.559  L_NCE=0.699  ratio=1.40  gnorm=28.57  sps=5.72
+  [grad-norm @ 100] L_task=158.46  L_KL=41.62  L_cf=33.61  L_cond_pred=0.22  L_NCE_cond=6.12  L_BLSP=200.08
+  [cos-contrib @ 100] L_task=0.766  L_KL=-0.485  L_cf=0.870  L_cond_pred=0.010  L_NCE_cond=-0.019  clip_fires=True  total_norm=247.49
+  step  100 lr=1.67e-05  L_task=2.943  L_KL=1.642  L_cf=0.719  L_art=0.000  L_cond=2.464  L_t=2.561  L_NCE=0.704  ratio=1.40  gnorm=21.94  sps=5.71
+  step  110 lr=1.83e-05  L_task=2.845  L_KL=1.758  L_cf=0.743  L_art=0.000  L_cond=2.468  L_t=2.547  L_NCE=0.695  ratio=1.40  gnorm=14.98  sps=5.72
+  step  120 lr=2.00e-05  L_task=3.218  L_KL=1.508  L_cf=0.691  L_art=0.000  L_cond=2.437  L_t=2.561  L_NCE=0.698  ratio=1.40  gnorm=27.38  sps=5.70
+  step  130 lr=2.17e-05  L_task=2.436  L_KL=1.883  L_cf=0.684  L_art=0.000  L_cond=2.376  L_t=2.532  L_NCE=0.699  ratio=1.40  gnorm=27.47  sps=5.70
+  step  140 lr=2.33e-05  L_task=2.960  L_KL=1.265  L_cf=0.717  L_art=0.000  L_cond=2.398  L_t=2.540  L_NCE=0.696  ratio=1.40  gnorm=35.94  sps=5.70
+  [grad-norm @ 150] L_task=106.99  L_KL=48.63  L_cf=44.17  L_cond_pred=0.31  L_NCE_cond=6.01  L_BLSP=155.63
+  [cos-contrib @ 150] L_task=0.759  L_KL=-0.441  L_cf=0.993  L_cond_pred=-0.013  L_NCE_cond=0.002  clip_fires=True  total_norm=279.05
+  step  150 lr=2.50e-05  L_task=2.615  L_KL=1.588  L_cf=0.709  L_art=0.000  L_cond=2.376  L_t=2.545  L_NCE=0.702  ratio=1.40  gnorm=12.48  sps=5.70
+  step  160 lr=2.67e-05  L_task=2.431  L_KL=1.563  L_cf=0.688  L_art=0.000  L_cond=2.353  L_t=2.546  L_NCE=0.694  ratio=1.40  gnorm=12.32  sps=5.70
+  step  170 lr=2.83e-05  L_task=2.714  L_KL=1.403  L_cf=0.675  L_art=0.000  L_cond=2.329  L_t=2.515  L_NCE=0.698  ratio=1.40  gnorm=23.38  sps=5.71
+  step  180 lr=3.00e-05  L_task=2.450  L_KL=1.406  L_cf=0.667  L_art=0.000  L_cond=2.252  L_t=2.503  L_NCE=0.698  ratio=1.40  gnorm=19.05  sps=5.70
+  step  190 lr=3.17e-05  L_task=2.334  L_KL=1.686  L_cf=0.722  L_art=0.000  L_cond=2.308  L_t=2.517  L_NCE=0.702  ratio=1.40  gnorm=15.80  sps=5.70
+  [grad-norm @ 200] L_task=46.39  L_KL=43.35  L_cf=32.64  L_cond_pred=0.35  L_NCE_cond=5.54  L_BLSP=89.74
+  [cos-contrib @ 200] L_task=0.620  L_KL=0.106  L_cf=0.999  L_cond_pred=0.003  L_NCE_cond=-0.004  clip_fires=True  total_norm=196.29
+  step  200 lr=3.33e-05  L_task=2.558  L_KL=1.437  L_cf=0.649  L_art=0.000  L_cond=2.164  L_t=2.492  L_NCE=0.703  ratio=1.40  gnorm=14.02  sps=5.70
+  step  210 lr=3.50e-05  L_task=2.192  L_KL=1.523  L_cf=0.672  L_art=0.000  L_cond=2.236  L_t=2.489  L_NCE=0.697  ratio=1.40  gnorm=11.64  sps=5.69
+  step  220 lr=3.67e-05  L_task=2.324  L_KL=1.622  L_cf=0.678  L_art=0.004  L_cond=2.290  L_t=2.516  L_NCE=0.697  ratio=1.40  gnorm=33.67  sps=5.69
+  step  230 lr=3.83e-05  L_task=2.609  L_KL=1.366  L_cf=0.668  L_art=0.000  L_cond=2.267  L_t=2.489  L_NCE=0.694  ratio=1.40  gnorm=15.05  sps=5.69
+  step  240 lr=4.00e-05  L_task=2.410  L_KL=1.489  L_cf=0.744  L_art=0.000  L_cond=2.034  L_t=2.433  L_NCE=0.697  ratio=1.41  gnorm=21.03  sps=5.69
+  [grad-norm @ 250] L_task=42.71  L_KL=69.12  L_cf=28.90  L_cond_pred=0.36  L_NCE_cond=4.79  L_BLSP=111.83
+  [cos-contrib @ 250] L_task=0.405  L_KL=0.323  L_cf=0.983  L_cond_pred=-0.018  L_NCE_cond=-0.032  clip_fires=True  total_norm=181.60
+  step  250 lr=4.17e-05  L_task=2.324  L_KL=1.563  L_cf=0.674  L_art=0.079  L_cond=2.097  L_t=2.460  L_NCE=0.699  ratio=1.41  gnorm=18.59  sps=5.69
+  step  260 lr=4.33e-05  L_task=2.229  L_KL=1.797  L_cf=0.675  L_art=0.000  L_cond=2.029  L_t=2.448  L_NCE=0.698  ratio=1.41  gnorm=23.30  sps=5.69
+  step  270 lr=4.50e-05  L_task=2.491  L_KL=1.537  L_cf=0.617  L_art=0.028  L_cond=2.091  L_t=2.430  L_NCE=0.693  ratio=1.41  gnorm=13.05  sps=5.68
+  step  280 lr=4.67e-05  L_task=2.418  L_KL=1.685  L_cf=0.602  L_art=0.000  L_cond=2.197  L_t=2.461  L_NCE=0.697  ratio=1.41  gnorm=13.08  sps=5.67
+  step  290 lr=4.83e-05  L_task=2.456  L_KL=1.553  L_cf=0.607  L_art=0.000  L_cond=2.054  L_t=2.419  L_NCE=0.695  ratio=1.42  gnorm=17.02  sps=5.67
+  [grad-norm @ 300] L_task=90.12  L_KL=35.30  L_cf=17.84  L_cond_pred=0.22  L_NCE_cond=5.75  L_BLSP=125.42
+  [cos-contrib @ 300] L_task=0.724  L_KL=-0.532  L_cf=0.916  L_cond_pred=0.001  L_NCE_cond=0.009  clip_fires=True  total_norm=128.28
+  step  300 lr=5.00e-05  L_task=2.170  L_KL=1.665  L_cf=0.661  L_art=0.000  L_cond=2.304  L_t=2.468  L_NCE=0.700  ratio=1.42  gnorm=12.66  sps=5.67
+  step  310 lr=4.90e-05  L_task=2.110  L_KL=1.740  L_cf=0.501  L_art=0.000  L_cond=2.135  L_t=2.390  L_NCE=0.698  ratio=1.42  gnorm=15.21  sps=5.67
+  step  320 lr=4.58e-05  L_task=2.245  L_KL=1.863  L_cf=0.639  L_art=0.030  L_cond=2.294  L_t=2.409  L_NCE=0.699  ratio=1.42  gnorm=31.39  sps=5.67
+  step  330 lr=4.05e-05  L_task=2.296  L_KL=1.376  L_cf=0.625  L_art=0.018  L_cond=2.165  L_t=2.376  L_NCE=0.704  ratio=1.42  gnorm=19.11  sps=5.67
+  step  340 lr=3.38e-05  L_task=2.418  L_KL=1.513  L_cf=0.757  L_art=0.099  L_cond=2.396  L_t=2.444  L_NCE=0.701  ratio=1.42  gnorm=25.75  sps=5.67
+  [grad-norm @ 350] L_task=67.01  L_KL=33.46  L_cf=30.42  L_cond_pred=0.26  L_NCE_cond=5.07  L_BLSP=100.47
+  [cos-contrib @ 350] L_task=0.581  L_KL=-0.140  L_cf=0.990  L_cond_pred=0.009  L_NCE_cond=-0.006  clip_fires=True  total_norm=184.80
+  step  350 lr=2.63e-05  L_task=2.101  L_KL=1.768  L_cf=0.449  L_art=0.000  L_cond=2.022  L_t=2.358  L_NCE=0.706  ratio=1.42  gnorm=31.38  sps=5.67
+  step  360 lr=1.87e-05  L_task=2.264  L_KL=1.532  L_cf=0.635  L_art=0.095  L_cond=2.169  L_t=2.395  L_NCE=0.699  ratio=1.42  gnorm=17.14  sps=5.67
+  step  370 lr=1.17e-05  L_task=2.295  L_KL=1.650  L_cf=0.571  L_art=0.000  L_cond=2.363  L_t=2.462  L_NCE=0.696  ratio=1.42  gnorm=13.70  sps=5.66
+  step  380 lr=6.14e-06  L_task=2.069  L_KL=1.508  L_cf=0.476  L_art=0.139  L_cond=2.021  L_t=2.363  L_NCE=0.699  ratio=1.42  gnorm=16.59  sps=5.66
+  step  390 lr=2.45e-06  L_task=2.146  L_KL=1.612  L_cf=0.343  L_art=0.074  L_cond=2.190  L_t=2.360  L_NCE=0.699  ratio=1.42  gnorm=14.73  sps=5.66
+  step  400 lr=1.01e-06  L_task=2.173  L_KL=1.551  L_cf=0.475  L_art=0.000  L_cond=2.020  L_t=2.371  L_NCE=0.694  ratio=1.42  gnorm=15.54  sps=5.66
+
+  done: 400 optimizer steps over 2262.4s  (5.66 samples/s)
+  saved → outputs/stage3p8/grad_norm_clip_log_seed1237.json
+  saved → outputs/stage3p8/A_R1p8_seed1237.pt  (356.7 MB)
+  artifact trigger rate: 88/800 = 11.00%
+  main-step clip rate:   400/400 = 100.00%
+  grad-norm summary (mean across diag steps):

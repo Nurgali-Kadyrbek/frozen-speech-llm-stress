@@ -1,0 +1,34 @@
+# Beyond Transcript Alignment — locked stack (post round-6 review)
+# Pin: transformers==4.51.3 (verified inputs_embeds API), torch>=2.5
+# All large data goes to /raid; this file lists Python deps only.
+
+# Core
+torch>=2.5,<2.7
+transformers==4.51.3
+accelerate>=0.34,<1.5
+datasets>=2.21,<3.4
+peft>=0.13,<0.16
+
+# Audio I/O + resampling (16 kHz pipeline)
+soundfile>=0.12
+librosa>=0.10
+soxr>=0.5
+
+# HF tokenizer fast path used by Qwen3
+tokenizers>=0.20
+sentencepiece>=0.2
+protobuf>=4.25
+
+# Numerics + plotting (smoke diagnostics)
+numpy>=1.26,<2.3
+scipy>=1.13
+scikit-learn>=1.4
+
+# Stage 0 dataset metadata (HF datasets uses these)
+huggingface_hub>=0.24
+fsspec>=2024.6
+pyarrow>=15
+
+# CLI / config
+pyyaml>=6
+tqdm>=4.66

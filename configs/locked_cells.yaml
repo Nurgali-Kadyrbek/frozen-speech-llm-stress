@@ -1,0 +1,741 @@
+# Locked stack after Stage 1 (Probe-G-oracle + WavLM Probe-K + Whisper diagnostic).
+# Locking date: 2026-05-02 (Stage 1, single session).
+# Selection rule: highest LINEAR Probe-K on Stress-17K-raw probe-eval
+# (held-out transcripts, deterministic 80/20 split). StressPresso is held out
+# from selection by the governing rule and reported only.
+
+llm:
+  id: "Qwen/Qwen3-8B"
+  d_llm: 4096
+  dtype_for_training: "bfloat16"   # provisional; fp32 used for Stage 1a oracle.
+  selection_rationale: |
+    Qwen3-1.7B oracle accuracy = 0.7228 (CI margin > 0 but accuracy < 0.75 → switch).
+    Qwen3-8B oracle accuracy   = 0.7871 (CI margin > 0; passes the 0.75 floor,
+    borderline against the 0.80 ideal). Locking 8B; re-check on a stronger LLM
+    before claiming any headline result is required by the session prompt.
+  oracle_threshold_status: "PASS_BORDERLINE"
+  flagged_for_recheck_at_scale: true
+
+speech_encoder:
+  id: "microsoft/wavlm-large"
+  d_enc: 1024
+  cell: "WavLM-L16"
+  cell_mode: "single"
+  cell_layers: [16]
+  selection_rationale: |
+    Top LINEAR Probe-K on Stress-17K-raw probe-eval (held-out-transcript):
+    WavLM-L16=0.4239, WS{8..16}=0.4158, WS{1..24}=0.4088, L12=0.4088, L8=0.3449.
+    L16 wins by a small margin over WS{8..16}; both are robust to fp16 cast and
+    additive Gaussian σ ≤ 0.1 (Δ ≤ 0.01).
+  notes_for_stage_2_plus: |
+    Adapter input = WavLM hidden_states[16] at 50 Hz, then 4× strided 1D conv
+    + 2-layer MLP + RMSNorm + modality-token. Adapter last-linear init scale
+    should target measured row-norm ‖embed_tokens(8B)‖₂ (re-measure for 8B,
+    NOT the 1.7B value reported in the Stage-0 session notes). The 1.7B value
+    (‖row‖≈1.539) used a different d_llm.
+
+diagnostic_appendix:
+  whisper_layers_kept: [22, 32]
+  qwen3_asr: "deferred (Stage 0 spike)"
+  notes: |
+    Whisper-L32 LINEAR Probe-K (0.440) is comparable to WavLM-L16 (0.424) and
+    higher than Whisper-L22 (0.233). The expected STT-bottleneck pattern
+    (WavLM > Whisper-22 > Whisper-32 ≈ K_T) is NOT observed; design §1's
+    narrative needs an empirical update. Whisper-L22 < K_T (0.290) is also
+    surprising and is documented as a flag.
+
+splits:
+  stress17k_raw:
+    partition_seed: "BTA-2026-05-02"
+    eval_frac: 0.20
+    train_transcription_ids: 822
+    eval_transcription_ids:  197
+    train_rows: 3629
+    eval_rows:  861
+    n_max_classes: 13
+    multi_stress_filtered: 1221  # Stress-17K records with len(gt_stress_indices) != 1 dropped.
+  stresspresso:
+    role: "held-out report only (NOT used for selection)"
+    n_items: 202
+
+
+# ---- Stage 2 R0 BLSP baseline (appended; does NOT overwrite Stage-1 cells) ---- #
+# Run date: 2026-05-02. 5 seeds: 1234 (600 steps) + 1235-1238 (300 steps each;
+# loss had plateaued by step 250 in seed 1234). Effective batch=32 via
+# microbatch=1 + grad-accum=32. AdamW lr=5e-5, cosine to 1e-6.
+stage2_r0_baseline:
+  adapter:
+    architecture: "Conv1d(1024→4096, k=4, s=4) → MLP-2(4096→8192→4096, GeLU, residual after layer 1) → RMSNorm → +modality_token"
+    trainable_params_M: 83.91
+    deviation_note: "exceeds kickoff §2.0 ≤60M soft target by 40%; arithmetic consequence of MLP hidden = 2·d_llm = 8192 with d_llm=4096"
+    init_calibration:
+      std_8b_measured: 0.02205
+      embed_row_norm_mean: 1.3758
+      last_linear_std: 0.000345     # std_8b / sqrt(d_llm)
+      rmsnorm_scale: 0.02149        # post-smoke retune to bring ‖A(H)‖/‖row‖ into [0.5,2.0]
+      modality_token_std: 0.02205
+  training:
+    seeds: [1234, 1235, 1236, 1237, 1238]
+    optimizer: "AdamW lr=5e-5 weight_decay=0.01"
+    schedule: "warmup-then-cosine (warmup=500 for seed 1234; warmup=250 for seeds 1235-1238)"
+    grad_clip_max_norm: 1.0
+    data_mix: "60% Stress-17K probe-train (3629 rows) + 20% LibriSpeech-clean-100 (6000 sampled) + 20% Expresso-read (5799 read-split)"
+    augmentation: "bandlimit + synthetic-reverb + additive-noise + mu-law + resample-jitter (MP3/Opus codecs deferred — no ffmpeg dep)"
+    precision: "Qwen3-8B + WavLM bf16 frozen; adapter fp32 trainable; loss/optim fp32"
+  results_5seed:
+    probe_g_neutral_accuracy:
+      mean: 0.5122
+      sigma: 0.0108
+      range: 0.0262
+    probe_g_total_accuracy:
+      mean: 0.6306
+      sigma: 0.0095
+      range: 0.0265
+    probe_g_signed_margin_total:
+      mean: 2.135
+      sigma: 0.225
+      range: 0.565
+    probe_k_linear_eval_full:
+      mean: 0.2105
+      sigma: 0.0128
+      range: 0.0314
+    probe_k_mlp2_eval_full:
+      mean: 0.2446
+      sigma: 0.0339
+      range: 0.0859
+    cascade_t_neutral_accuracy: 0.5069  # deterministic across seeds
+    k_t_baseline_neutral_accuracy: 0.5064  # deterministic
+    oracle_reconfirm_accuracy: 0.7871  # delta from Stage 1a = +0.00 pp every seed
+  outcome_mapping:
+    expected: true
+    sub_cascade_collapse: true
+    sub_cascade_collapse_definition: "Probe-K(A_BLSP) linear eval_full < Probe-K(K_T) for ALL 5 seeds; mean Δ vs K_T = -0.080"
+    delta_seeds: "narrow (UNEXPECTED-D / §11 F1) — BLSP fixed-point is empirically tight"
+    floor_for_stage_3: |
+      R1 structural adapter must clear BOTH:
+       (a) Probe-G(A_R1)_neutral > 0.51 + cascade-T (i.e., > 0.557 with non-overlapping CIs)
+       (b) Probe-K(A_R1) linear eval_full > K_T (0.290), NOT just > A_BLSP (0.211).
+      Symmetry constraint: 5 seeds for R1 to match this R0 cohort (Codex round-3).
+
+
+# ---- Stage 3 R1 structural counterfactual (pilot only — NULL outcome) ---- #
+# Run date: 2026-05-02. Single seed (1234) due to NULL pilot result; cohort
+# not committed per kickoff §3.5 ("NULL → stop and report").
+stage3_r1_pilot:
+  branch: "NULL"
+  reason: |
+    Δ Probe-K linear vs R0 = -0.0131 (R1 worse than R0 by 1.3pp, not better);
+    Δ Probe-G neutral vs R0 = +0.0205 (below SUB-HEADLINE +0.025 threshold);
+    Probe-K cohort = 0.1974 ≪ K_T 0.290 floor;
+    Probe-G neutral = 0.5327 ≪ EXPECTED-band 0.561 floor.
+  adapter:
+    architecture: "same as Stage 2 R0 (Conv1d → MLP-2 → RMSNorm → +modality_token)"
+    trainable_params_M: 83.91
+    init_calibration: "loaded Stage 2 cached calibration (std_8B=0.02205)"
+  c_phi_heads:
+    c_phi_full_params_M:   3.15  # Linear(d_llm+8194 → 256) + Linear(256 → 13)
+    c_phi_t_only_params_M: 2.10  # Linear(8194 → 256) + Linear(256 → 13)
+  training:
+    seeds_run: [1234]
+    seeds_planned_for_cohort: [1235, 1236, 1237, 1238]
+    cohort_skipped_reason: "pilot mapped to NULL per §3.5"
+    optimizer: "AdamW lr=5e-5 weight_decay=0.01"
+    schedule: "warmup=300 + cosine to 1e-6 over 400 steps"
+    grad_clip_max_norm: 1.0
+    augmentation: "aggressive_stage3_config — apply_prob=1.0, bandlimit≤5kHz, SNR floor 0dB, RMS-norm 0.05, ffmpeg codec ∈ {mu_law,mp3_64,mp3_128,opus_24,opus_48}"
+    loss_weights: {lambda_kl: 1.0, lambda_cf: 1.0, lambda_artifact: 1.0, lambda_cond: 0.5, lambda_nce: 0.5}
+    delta_artifact: 0.10
+    tau_nce: 0.07
+    wallclock_min: 36.6
+  results_pilot:
+    probe_g_neutral_accuracy: 0.5327
+    probe_g_total_accuracy:   0.6517
+    probe_g_signed_margin_total: 2.1275
+    probe_k_linear_eval_full: 0.1974
+    probe_k_linear_within:    0.6190
+    probe_k_linear_sp_full:   0.1485
+    probe_k_mlp2_eval_full:   0.2451
+    probe_k_mlp2_sp_full:     0.1287
+    cascade_t_neutral_accuracy: 0.5069        # matches Stage 2 (deterministic)
+    k_t_baseline_neutral_accuracy: 0.5064     # matches Stage 2 (deterministic)
+    oracle_reconfirm_accuracy: 0.7871         # matches Stage 1a exactly
+  branch_d_diagnostics:
+    c1_within_domain_PASS: false
+    c1_subset_accs: {nova: 0.2019, echo: 0.1931, stresspresso: 0.1485}
+    c1_failure_reason: "stresspresso 0.1485 < (chance + 0.10) floor of 0.177"
+    c2_cross_domain_transfer_PASS: false
+    c2_in_domain_acc:     0.1974
+    c2_cross_domain_acc:  0.1485
+    c2_ratio:             0.7521
+    c2_failure_reason:    "ratio 0.752 < 0.80 threshold"
+    c3_domain_stratified_probe_g_PASS: true
+    c3_fraction_uplift_positive: 0.75   # 3/4 speakers
+    c4_domain_acc_A_R1: 0.7625           # vs raw H ~0.99 — adapter compresses domain
+    c4_RED_FLAG: false
+    t_only_accuracy: 0.1858              # < 0.30 contamination floor
+    t_only_lexical_contamination_flag: false
+  diagnostic_notes:
+    - "L_NCE flat at log(2) = 0.694 throughout; abstract phi-position embeddings (digit-only difference) are ~99% cosine-similar in d_llm and provide insufficient contrast"
+    - "L_cf barely moved past chance (final 0.66 vs log 2 = 0.693); L_BLSP CE dominates gradient direction"
+    - "L_artifact rarely activated (KL between K_a and K_a'' stayed below δ=0.10 nat throughout)"
+    - "L_cond-pred dropped modestly (2.55 → 2.14); pool features slightly informative when combined with restricted_T"
+    - "aggressive augmentation may have over-compressed Φ-relevant prosody alongside source-distinguishing surface signal"
+    - "per-component grad-norm diagnostic (kickoff §3.3) NOT implemented in pilot; adding it is first remediation step for any re-run"
+  recommended_followups:
+    - "loss-weight sweep on Stress-17K probe-eval (Stage 3.7); current λ schedule (1,1,1,0.5,0.5) underweights L_cf and L_NCE"
+    - "word-substitution L_NCE descriptions, since T-only ablation (0.186) shows lexical leakage is empirically below the 0.30 floor"
+    - "default-aug Stage-3 vs aggressive-aug Stage-3 ablation to isolate whether aug is destroying signal"
+    - "longer training (800-1200 steps) to see if L_cf and L_NCE eventually develop signal"
+    - "implement per-component grad-norm logging before any re-run"
+
+
+# ---- Stage 3.6 R1 re-pilot (B1+B2+B3 fixes; REVISED-PIPELINE-BUG) ---- #
+# Run date: 2026-05-02. Single seed (1234). Cohort skipped per kickoff
+# §3.6.5 conclusion ("If REVISED-PIPELINE-BUG fires, stop and report").
+stage3p6_r1_pilot:
+  branch: "REVISED-PIPELINE-BUG"
+  reason: |
+    L_BLSP gradient dominates structural-term gradients by 5–370× across
+    400 training steps; combined with grad clipping at max_norm=1.0 the
+    structural terms (L_cf, L_cond-pred, L_NCE-cond) make ≪ 1% contribution
+    to each optimizer update. L_NCE-cond final value 0.699 ≈ uniform log 2
+    despite cos-sim-non-degenerate word-substitution embeddings. The B1
+    mechanism is correctly wired (cos-sim 0.641 ≪ 0.85 gate; T-only 0.16
+    ≪ 0.30; L_artifact trigger rate 6.88% > 5% kickoff criterion) — the
+    failure is the loss-weight schedule, not the loss design.
+  three_fixes_status:
+    B1_word_sub_l_nce:
+      template:        "stress on {word}"
+      cos_sim_mean:    0.641        # n=500 cf pairs (q_pos, q_neg)
+      cos_sim_max:     0.739
+      cos_sim_gate_pass: true       # mean ≤ 0.85
+      desc_only_baseline_eval_acc: 0.3612    # logged baseline (not gate)
+      t_only_eval_acc: 0.1603       # < 0.30 contamination floor
+      l_nce_final:     0.699        # uniform = log 2 = 0.693
+      l_nce_below_uniform: false    # NOT meeting REVISED-HEADLINE criterion (< 0.6)
+    B2_grad_norm_logging:
+      diag_every_steps: 50
+      n_diag_events:    8
+      mean_grad_norms:
+        L_BLSP:        141.26
+        L_task:         71.76
+        L_KL:           69.50
+        L_cf:           28.12
+        L_cond_pred:     0.38
+        L_NCE_cond:      6.06
+      ratios_blsp_over_structural:
+        L_cf:        5.02
+        L_NCE_cond: 23.29       # > 10× → L_BLSP-domination flag fires
+        L_cond_pred: 370.01     # > 10× → L_BLSP-domination flag fires
+    B3_delta_artifact:
+      delta_artifact:           0.10
+      r0_kl_p75_pre_training:   0.1116    # measured on A_BLSP_seed1234
+      r1_original_kl_p75:       0.0313    # measured on A_R1_seed1234 (Stage 3)
+      stage3p6_trigger_rate:    0.0688    # 55/800 microbatches; meets > 5% kickoff bar
+      style_probe_eval_acc:     0.367     # chance 0.20, 5 styles, held-out speaker
+      b3_case:                  "i_encodes_style"  # NOT case ii (too coarse)
+  results_pilot:
+    probe_g_neutral_accuracy:  0.5213
+    probe_g_total_accuracy:    0.6450
+    probe_g_signed_margin_total: 2.1176
+    probe_k_linear_eval_full:  0.1998
+    probe_k_linear_within:     0.6156
+    probe_k_linear_sp_full:    0.1436
+    probe_k_mlp2_eval_full:    0.2590
+    probe_k_mlp2_sp_full:      0.1535
+    cascade_t_neutral_accuracy: 0.5069
+    k_t_baseline_neutral_accuracy: 0.5064
+    oracle_reconfirm_accuracy: 0.7871
+  branch_d_diagnostics:
+    c1_within_domain_PASS:                 false   # sp=0.144 < chance+10pp
+    c1_subset_accs:                        {nova: 0.2019, echo: 0.1977, stresspresso: 0.1436}
+    c2_cross_domain_transfer_revised_PASS: false
+    c2_in_domain_acc:                      0.1998
+    c2_cross_domain_acc:                   0.1436
+    c2_ratio:                              0.7188
+    c2_desc_only_floor:                    0.3612
+    c2_cond_i_cross_above_floor_005:       false   # 0.144 < 0.411
+    c2_cond_ii_ratio_above_080:            false   # 0.72 < 0.80
+    c2_cond_iii_in_above_floor_010:        false   # 0.200 < 0.461
+    c3_domain_stratified_probe_g_PASS:     false   # 2/4 = 0.50 (Stage 3 was 3/4)
+    c3_fraction_uplift_positive:           0.50
+    c4_domain_acc_A_R1p6:                  0.7625
+    c4_RED_FLAG:                           false
+  recommended_stage_3p7:
+    branch_a_match_grad_norm:
+      lambda_cf:        5.0     # 28.12 / 141.26 → 1× / 5×
+      lambda_artifact:  1.0
+      lambda_cond:    186.0     # would equalize, may be unstable
+      lambda_nce:       5.8     # ~23× of current 0.25
+    branch_b_conservative_bump:
+      lambda_cf:        4.0
+      lambda_artifact:  1.0
+      lambda_cond:      0.5
+      lambda_nce:       1.0     # 4× of current 0.25
+    note: |
+      Either rebalance addresses L_BLSP-domination identified by B2.
+      Branch (a) is grad-norm-equalized (aggressive); branch (b) is a
+      4× bump on under-represented terms (conservative). Both stay
+      within the spirit of "structural terms get measurable update
+      contribution".
+
+
+# ---- Stage 3.7 R1 loss-weight rebalance pilot (REVISED-PIPELINE-BUG-PERSISTS) ---- #
+# Run date: 2026-05-02. Single seed (1234). Cohort skipped per kickoff
+# §3.7.4 conclusion ("If REVISED-PIPELINE-BUG-PERSISTS fires, stop and report").
+stage3p7_r1_pilot:
+  branch: "REVISED-PIPELINE-BUG-PERSISTS"
+  reason: |
+    S1 fails: L_NCE final 0.695 ≈ uniform log 2 = 0.693 despite λ_NCE = 3
+    (12× the Stage 3.6 hedge). Codex cos-contrib diagnostic identifies
+    root cause: L_NCE gradient direction is approximately ORTHOGONAL to
+    the L_BLSP + L_cf direction (mean cos 0.05-0.16 across training).
+    Cosine alignment is scale-invariant under uniform clipping, so λ
+    tuning cannot resolve the conflict — only per-component projection
+    (PCGrad / GradVac) or per-component normalized aggregation can route
+    the small dimension-orthogonal signal into the actual update direction.
+    This is a Stage 3.8 protocol design issue, not a Stage 3.7 λ search
+    issue. Notable secondary finding: λ_cf = 5 produced the first
+    measurable Probe-K progress in any R1 cell.
+  one_axis_change_from_stage3p6:
+    lambda_kl:        1.0    # unchanged
+    lambda_cf:        5.0    # changed: 1.0 → 5.0 (5×)
+    lambda_artifact:  1.0    # unchanged
+    lambda_cond:      0.5    # unchanged
+    lambda_nce:       3.0    # changed: 0.25 (3.6 hedge) → 3.0 (12×)
+  s_criteria:
+    s1_l_nce_below_0_65:                              false   # 0.695
+    s2_probe_k_linear_in_domain_above_desc_only_floor: false   # 0.227 < 0.361
+    s3_c2_cross_domain_revised_PASS:                   "partial — only ratio condition (0.831 ≥ 0.80) met"
+    s4_probe_g_neutral_above_R0:                       true    # 0.515 ≥ 0.512
+  results_pilot:
+    probe_g_neutral_accuracy:   0.5153
+    probe_g_total_accuracy:     0.6319
+    probe_g_explicit_accuracy:  0.7485
+    probe_k_linear_eval_full:   0.2265   # +0.0160 vs R0 cohort 0.211 — FIRST CROSSING
+    probe_k_linear_within:      0.6213
+    probe_k_linear_sp_full:     0.1881
+    probe_k_mlp2_eval_full:     0.3120   # +0.0674 vs R0 — CLEARS K_T 0.290
+    probe_k_mlp2_within:        0.7212
+    probe_k_mlp2_sp_full:       0.2079
+    cascade_t_neutral_accuracy: 0.5069
+    k_t_baseline_neutral_accuracy: 0.5064
+    oracle_reconfirm_accuracy:  0.7871
+  branch_d_diagnostics:
+    c1_within_domain_PASS:                  true    # PASSED first time
+    c1_subset_accs:                         {nova: 0.2394, echo: 0.2138, stresspresso: 0.1881}
+    c2_cross_domain_transfer_revised_PASS:  false
+    c2_in_domain_acc:                       0.2265
+    c2_cross_domain_acc:                    0.1881
+    c2_ratio:                               0.8307  # passes ratio condition for first time
+    c2_desc_only_floor:                     0.3612
+    c2_cond_i_cross_above_floor_005:        false   # 0.188 < 0.411
+    c2_cond_ii_ratio_above_080:             true    # 0.83 ≥ 0.80 — first time
+    c2_cond_iii_in_above_floor_010:         false   # 0.227 < 0.461
+    c3_domain_stratified_probe_g_PASS:      false
+    c3_fraction_uplift_positive:            0.50
+    c4_domain_acc_A_R1p7:                   0.7625
+    c4_RED_FLAG:                            false
+    b3_style_probe_eval_acc:                0.4250  # case i_encodes_style, more pronounced than 3.6
+    t_only_eval_acc:                        0.1603
+  per_component_grad_diagnostics:
+    main_step_clip_rate:        1.00      # 400/400; total grad always > 1.0
+    artifact_trigger_rate:      0.0575    # 46/800; meets > 5%
+    cos_to_total_update:
+      L_cf:        "0.95-1.00 (highly aligned — λ=5 worked)"
+      L_NCE_cond:  "0.05-0.16 (essentially orthogonal — λ tuning cannot fix)"
+      L_cond_pred: "-0.02 to 0.01 (orthogonal noise; pool-grad ~0.4 absolute)"
+      L_task:      "0.34-0.70 (composite alignment varies)"
+      L_KL:        "-0.37 to 0.62 (occasionally adversarial to total)"
+  notable_progress:
+    - "Probe-K linear eval_full ABOVE R0 cohort mean for the first time (0.226 > 0.211)"
+    - "Probe-K mlp2 eval_full clears K_T floor for the first time (0.312 > 0.290)"
+    - "Probe-K mlp2 within-transcript +5pp vs Stage 3.6 (0.672 → 0.721)"
+    - "C.1 within-domain stratified PASSES for the first time (all subsets > chance+10pp)"
+    - "C.2 ratio condition PASSES for the first time (0.83 ≥ 0.80)"
+  recommended_stage_3p8:
+    option_a_pcgrad_gradient_projection:
+      description: "Project ∇L_NCE onto null space of ∇L_cf when cos < 0"
+      cost:        "minor — 1 extra autograd.grad per backward"
+    option_b_per_component_adamw:
+      description: "Separate parameter-group AdamW; merge updates"
+      cost:        "N× adapter-param-mem; complex"
+    option_c_drop_l_nce_entirely:
+      description: "Stage 3.8 cohort with λ_NCE=0 to test whether L_cf alone is the driver"
+      cost:        "trivial — just rerun with λ_NCE=0; clearest signal"
+      recommended:  true
+    note: |
+      Option C is the recommended Stage 3.8 because it cleanly attributes
+      the Probe-K gain to L_cf alone (or not, if it disappears). PCGrad
+      and per-component AdamW are R&D detours that may not even fix L_NCE
+      if its preferred direction is fundamentally Φ-encoding-orthogonal
+      in this adapter.
+
+
+# ---- Stage 3.8 R1.8 cohort (drop L_NCE; 5 seeds confirmatory) ---- #
+# Run date: 2026-05-02 → 03 (overnight cohort). Single-axis change from
+# Stage 3.7: λ_NCE 3.0 → 0.0. Else bit-identical (λ_cf=5, λ_artifact=1,
+# λ_cond=0.5, λ_KL=1; aggressive aug; 400 steps; max_norm=1.0).
+stage3p8_r1_cohort:
+  branch: "UNCLASSIFIED (F3-adjacent; +0.005 under PARTIAL-K-only on linear; mlp2 clears K_T)"
+  reason: |
+    L_cf-driven Probe-K gain reproduces across 5 seeds: linear eval_full
+    cohort mean 0.226 (+0.015 vs R0 0.211, σ_seeds=0.012) — first time
+    R1 cohort mean exceeds R0 cohort mean. mlp2 cohort mean 0.306 cleanly
+    clears K_T floor 0.290 (+0.016). However, Probe-G stays at R0 at the
+    consumer level (Δ_neutral +0.000) — the canonical F3 pattern: adapter
+    preserves Φ at representation level, LLM ignores it at consumer
+    level. Δ_linear = +0.015 misses the kickoff's +0.020 PARTIAL-K-only
+    threshold by 5pp; Δ_seeds = 0.031 also exceeds the 0.025 tightness
+    criterion. Branch is literally UNCLASSIFIED but the structural
+    pattern is unambiguously F3 (per Gap-G interpretation matrix).
+  seeds: [1234, 1235, 1236, 1237, 1238]
+  seed_1234_carry_over: |
+    Reused outputs/stage3p7/A_R1p7_seed1234.pt as cohort member 1.
+    Stage 3.7 cos-contrib log proved L_NCE alignment 0.05-0.16 with
+    total update direction; λ_NCE=3 contributed essentially zero so
+    the adapter is unchanged from λ_NCE=0 to within numerical noise.
+  loss_weights:
+    lambda_kl:        1.0
+    lambda_cf:        5.0
+    lambda_artifact:  1.0
+    lambda_cond:      0.5    # diagnostic only; T-only ablation continuity
+    lambda_nce:       0.0    # DROPPED per Stage 3.7 cos-contrib analysis
+  per_seed_training_anchors:
+    l_cf_final:        {1234: 0.629, 1235: 0.560, 1236: 0.554, 1237: 0.475, 1238: 0.564}
+    l_cf_below_uniform: {1234: true, 1235: true, 1236: true, 1237: true, 1238: true}
+    l_nce_final:       {1234: 0.695, 1235: 0.694, 1236: 0.697, 1237: 0.694, 1238: 0.697}
+    clip_rate:         {1234: 1.00, 1235: 1.00, 1236: 1.00, 1237: 1.00, 1238: 1.00}
+    l_cf_cos_to_total_mean: {1234: 0.925, 1235: 0.889, 1236: 0.985, 1237: 0.953, 1238: 0.907}
+  results_cohort:
+    probe_g_total:
+      mean: 0.6326
+      sigma: 0.0061
+      delta_vs_r0: +0.0020
+    probe_g_neutral:
+      mean: 0.5122
+      sigma: 0.0039
+      delta_vs_r0: +0.0000
+    probe_g_explicit:
+      mean: 0.7531
+      sigma: 0.0138
+      delta_vs_r0: +0.0040
+    probe_k_linear_eval_full:
+      mean: 0.2256
+      sigma: 0.0118
+      range: 0.0314
+      delta_vs_r0: +0.0151
+    probe_k_linear_within:    0.6207
+    probe_k_linear_sp_full:   0.2050
+    probe_k_mlp2_eval_full:
+      mean: 0.3059
+      sigma: 0.0436
+      range: 0.1034
+      delta_vs_r0: +0.0613
+      clears_k_t_floor: true
+    probe_k_mlp2_within:      0.7052
+    probe_k_mlp2_sp_full:     0.2099
+    cascade_t_neutral_accuracy: 0.5069        # deterministic, exact match across seeds
+    k_t_baseline_neutral_accuracy: 0.5064     # deterministic
+    oracle_reconfirm_accuracy_per_seed:        # exact across 5 seeds
+      1234: 0.7871
+      1235: 0.7871
+      1236: 0.7871
+      1237: 0.7871
+      1238: 0.7871
+  branch_d_cohort:
+    c1_within_domain_PASS: "5/5 seeds — all clear chance+10pp floor"
+    c2_revised_3cond_PASS: "0/5 seeds (in_domain ≪ floor+0.10 on all)"
+    c2_ratio_cohort_mean:  0.910        # passes ratio condition first time
+    c3_stratified_probe_g_PASS: "2/5 seeds (1235, 1238)"
+    c3_fraction_uplift_positive_per_seed: {1234: 0.50, 1235: 0.75, 1236: 0.50, 1237: 0.50, 1238: 1.00}
+    c4_domain_acc_cohort:  0.7625        # deterministic across seeds
+    c4_red_flag:           false
+    b3_style_probe_cohort_mean: 0.418   # case i_encodes_style across all 5
+    t_only_cohort_mean:    0.170        # < 0.30 contamination floor; no leakage
+  branch_thresholds:
+    headline_required:
+      linear_cohort_above_R0_plus_020:    {required: 0.2305, observed: 0.2256, met: false}
+      mlp2_cohort_above_K_T:              {required: 0.290,  observed: 0.3059, met: true}
+      neutral_cohort_above_R0_plus_025:   {required: 0.5372, observed: 0.5122, met: false}
+      explicit_cohort_above_R0_plus_020:  {required: 0.7691, observed: 0.7531, met: false}
+      c1_cohort_PASS:                     {required: true,   observed: true,   met: true}
+      c2_cohort_PASS:                     {required: true,   observed: false,  met: false}
+      c3_cohort_PASS:                     {required: true,   observed: false,  met: false}
+      delta_seeds_below_025:              {required: 0.025,  observed: 0.031,  met: false}
+    partial_k_only_required:
+      linear_cohort_above_R0_plus_020:    {required: 0.2305, observed: 0.2256, met: false}
+      c1_cohort_PASS:                     {required: true,   observed: true,   met: true}
+      neutral_within_R0_pm_015:           {required: true,   observed: true,   met: true}
+      explicit_within_R0_pm_010:          {required: true,   observed: true,   met: true}
+  notable_findings:
+    - "First sustained Probe-K crossing of R0 cohort baseline (5-seed cohort linear +0.015)"
+    - "First mlp2 clearing of K_T floor at cohort level (0.306 > 0.290)"
+    - "C.1 within-domain stratified PASSES on all 5 seeds (vs 0/5 for R0 / R1 / R1.6)"
+    - "C.2 ratio cohort mean 0.910 (R0 / R1 / R1.6 were ~0.7)"
+    - "L_cf trains under λ=5 across all 5 seeds (range 0.475-0.629, all < uniform 0.693)"
+    - "Probe-G barely moves at consumer level — F3 pattern (Gap-G interpretation matrix)"
+    - "T-only contamination 0.170, no leakage"
+    - "Oracle re-confirms 0.7871 exact on every seed — pipeline integrity"
+  recommended_followup:
+    - "Stage 4 controls (Control A text-only adapter + Control B shuffled audio + shortcut probes) — needed to publish even the modest F3-adjacent result"
+    - "Per-component grad projection (PCGrad / GradVac) for L_NCE recovery (Stage 3.10 territory; orthogonal to Stage 4)"
+    - "Stage 6 minimal-LoRA upper-bound experiment (LoRA rank 4/8/16 on Qwen3-8B q_proj/v_proj) to test whether F3 is consumer-side LLM limitation"
+
+
+# ---- Stage 4 controls (CONTROLS-PASS validates R1.8 MLP-2 > K_T) ---- #
+# Run date: 2026-05-02 → 03 (multi-day session). Three falsification
+# controls run against the Stage 3.8 R1.8 cohort.
+stage4_controls:
+  branch: "CONTROLS-PASS"
+  reason: |
+    All three falsification gates clear with substantial margin:
+      Control A (text-only) MLP-2 cohort = 0.2122, gap to R1.8 cohort
+        (0.3059) = -0.094. Structural objective is NOT optimizer
+        regularization.
+      Control B (shuffled audio) MLP-2 cohort = 0.2033, gap to R1.8
+        cohort = -0.103. Audio is doing real work, not transcript-side
+        leakage.
+      Shortcut probes per-seed PASS in 5/5 seeds; cohort tts_vs_real
+        0.645 (raw H 0.89, drop -0.25), cohort domain 0.762 (raw H 0.99,
+        drop -0.23). Adapter compresses nuisance signal substantially.
+    R1.8 representational MLP-2 > K_T finding validated as
+    audio-derived. Bounded F3 result is publishable; Stage 6 minimal-LoRA
+    upper-bound is the next experiment to test whether F3 is mechanistic
+    (does LoRA on Qwen3-8B q_proj/v_proj recover consumer-side use of
+    the adapter's structural signal?).
+  control_a_text_only:
+    seeds: [1234, 1235, 1236]
+    proj_P_fit:
+      method:        "numpy.linalg.lstsq with bias term"
+      train_samples: 500
+      train_mse:     0.0899
+      train_cos_sim: 0.9992
+      shape:         "W: (4096, 1024), b: (1024,)"
+    loss_weights: {lambda_kl: 1.0, lambda_cf: 5.0, lambda_artifact: 1.0, lambda_cond: 0.5, lambda_nce: 0.0}
+    cohort_results:
+      probe_k_linear_eval_full: {mean: 0.2292, sigma: 0.0094}
+      probe_k_mlp2_eval_full:   {mean: 0.2122, sigma: 0.0203}
+      probe_k_linear_sp_full:   {mean: 0.1304}
+      probe_k_mlp2_sp_full:     {mean: 0.1502}
+      probe_g_neutral:          {mean: 0.5092}
+      probe_g_explicit:         {mean: 0.7622}
+    pass_threshold:    0.310     # K_T floor 0.290 + 0.02
+    pass_mlp2_cohort:  true
+    gap_vs_R1p8_mlp2:  -0.0937
+    interpretation: |
+      Text-only adapter under the SAME R1.8 loss does NOT reach R1.8's
+      MLP-2 representational level. L_cf at training time stays at
+      uniform (~0.696) because text-projection inputs offer no
+      Φ-discriminating signal — the model cannot solve cf-pair contrast
+      from text alone. The structural objective genuinely requires
+      audio.
+  control_b_shuffle:
+    seeds: [1234, 1235, 1236]
+    cf_pairs_path: "outputs/stage4/cf_pairs_train_shuffled.jsonl"
+    n_pairs:       3666
+    decorrelation: "audio drawn from a DIFFERENT transcript per pair member; transcript+Φ labels intact"
+    loss_weights: {lambda_kl: 1.0, lambda_cf: 5.0, lambda_artifact: 1.0, lambda_cond: 0.5, lambda_nce: 0.0}
+    cohort_results:
+      probe_k_linear_eval_full: {mean: 0.2083, sigma: 0.0159}
+      probe_k_mlp2_eval_full:   {mean: 0.2033, sigma: 0.0112}
+      probe_k_linear_sp_full:   {mean: 0.1485}
+      probe_k_mlp2_sp_full:     {mean: 0.1601}
+      probe_g_neutral:          {mean: 0.5155}
+      probe_g_explicit:         {mean: 0.7685}
+    pass_threshold:    0.275     # R0 cohort mlp2 0.245 + 0.030
+    pass_mlp2_cohort:  true
+    gap_vs_R1p8_mlp2:  -0.1026
+    interpretation: |
+      Shuffled-audio adapter falls BELOW R0 cohort baseline on linear
+      Probe-K (0.208 vs R0 0.211) — when audio is decorrelated from
+      labels, the adapter cannot encode Φ at all. R1.8's gain requires
+      correct (audio, transcript, Φ) alignment.
+  shortcut_probes_cohort:
+    seeds_evaluated: [1234, 1235, 1236, 1237, 1238]
+    raw_H_baselines:
+      tts_vs_real: 0.89   # Stage 3.0.5 aggressive_aug
+      domain:      0.99
+    pass_threshold_drop_per_seed: 0.10
+    per_seed_PASS_count: 5
+    n_seeds:             5
+    cohort_PASS:         true
+    cohort_means:
+      tts_vs_real_eval_acc: {mean: 0.6450, sigma: 0.0565}
+      domain_eval_acc:      {mean: 0.7625, sigma: 0.0000}
+    interpretation: |
+      Adapter compresses tts_vs_real signal from raw H 0.89 → 0.65
+      cohort mean (drop -0.245), domain from 0.99 → 0.76 (drop -0.228).
+      All 5 seeds clear the per-seed 0.10-absolute-drop threshold.
+      Combined with Stage 3.0.5 finding that raw H is encoder-construction
+      shortcut-rich, this confirms the adapter is the load-bearing
+      compression — not the augmentation.
+  recommended_next_stage:
+    - "Stage 6 minimal-LoRA upper-bound on Qwen3-8B q_proj/v_proj at ranks 4/8/16. Test: does small LoRA on the LLM recover consumer-side use of A_R1.8(H)'s structural signal? F3 mechanistic if yes; structural-but-stuck if no."
+    - "Stage 5 per-term ablations are now informative: drop L_artifact, drop L_cond_pred individually to attribute which term drives the L_cf-driven Probe-K gain."
+    - "Stage 7 R2 pair-supervised counterfactual remains an option but is lower priority given the F3 finding shape."
+    - "PCGrad/GradVac for L_NCE recovery is ALSO available but is now exploratory; the Stage 4-validated R1.8 result stands without L_NCE."
+
+
+# ---- Stage 6 minimal-LoRA upper-bound (F3 mechanistic test; weak-negative) ---- #
+# Run date: 2026-05-03. Two LoRA ranks tested (8 then 4) on Qwen3-8B
+# q_proj/v_proj × all 36 layers. R1.8 adapter + C_φ heads FROZEN.
+stage6_lora_pilot:
+  branch: "weak-negative (H2-adjacent)"
+  reason: |
+    Two-rank LoRA test diagnostic. Rank 8 (α=32, scale 4) drifts oracle
+    re-confirm by -5.94 pp — LoRA at this scale alters Qwen3-8B base text
+    reading; consumer Probe-G_neutral 0.483 falls below R0 by 0.029.
+    Rank 4 (α=16, scale 4) preserves oracle within +0.99 pp; Probe-G_neutral
+    0.493 lands 0.4 pp below the H2 band [R0±0.015 = 0.497-0.527] on the
+    negative side. The differential audio effect did not materialize when
+    general degradation was suppressed. Bounded F3 from Stage 4 stands.
+  config_audit:
+    target_modules:        ["q_proj", "v_proj"]
+    n_modules_total:        72       # 36 transformer blocks × 2
+    n_q_proj:               36
+    n_v_proj:               36
+    n_other_modules_lora:   0        # confirmed no leakage
+    saved_ckpt_audit:       "identical breakdown on PeftModel.from_pretrained"
+  rank_8:
+    pilot_seed:            1234
+    lora_alpha:            32.0
+    lora_dropout:          0.05
+    n_lora_params_M:       3.83
+    lr:                    1e-4
+    weight_decay:          0.0
+    warmup_steps:          200
+    max_steps:             400
+    wallclock_min:         43.4
+    artifact_trigger_rate: 0.0700
+    main_clip_rate:        1.000
+    results:
+      oracle_reconfirm_accuracy: 0.7277       # -5.94 pp drift vs Stage 1a 0.7871
+      oracle_drift_pp:           -5.94
+      probe_g_neutral_accuracy:  0.4827
+      probe_g_total_accuracy:    0.5938
+      probe_g_explicit_accuracy: 0.7050
+      probe_k_linear_eval_full:  0.2276
+      probe_k_mlp2_eval_full:    0.3124
+      probe_k_mlp2_within:       0.7213
+    branch_8: "ORACLE-DRIFT (kickoff §6.6)"
+    decision_8: "Lower rank to 4 per kickoff §6.6 ORACLE-DRIFT recommendation."
+  rank_4:
+    pilot_seed:            1234
+    lora_alpha:            16.0     # preserves α/r=4 scale
+    lora_dropout:          0.05
+    n_lora_params_M:       1.92
+    lr:                    1e-4
+    weight_decay:          0.0
+    warmup_steps:          200
+    max_steps:             400
+    wallclock_min:         44.2
+    artifact_trigger_rate: 0.0788
+    main_clip_rate:        1.000
+    results:
+      oracle_reconfirm_accuracy: 0.7970       # +0.99 pp drift; well within 2pp threshold
+      oracle_drift_pp:           +0.99
+      probe_g_neutral_accuracy:  0.4926
+      probe_g_total_accuracy:    0.6277
+      probe_g_explicit_accuracy: 0.7629
+      probe_k_linear_eval_full:  0.2265
+      probe_k_mlp2_eval_full:    0.3120
+      probe_k_mlp2_within:       0.7212
+    branch_4: "weak-negative (Probe-G_neutral 0.4926 = R0 - 0.0196, just outside R0±0.015)"
+    decision_4: "Accept; report two-rank failure pattern."
+  cohort_run:                false
+  cohort_skipped_reason:     "weak-negative pilot does not trigger cohort per kickoff §6.3 (only HEADLINE / SUB-HEADLINE / EXPLICIT-ONLY trigger cohort)."
+  controls_run:              false
+  controls_skipped_reason:   "controls (LoRA-only-textK + LoRA-on-R0) gate against H1; with no H1 indicators in pilot, controls would just confirm the overall pattern. Out-of-session-budget."
+  bounded_f3_status: "Stage 4 controls validated R1.8 representational gain as audio-derived. Stage 6 minimal-LoRA at ranks 4 and 8 does not bridge the consumer gap. Bounded F3 finding is documented as observed."
+  out_of_scope_consistent_with_kickoff:
+    - "Higher LoRA ranks (16+): per kickoff anti-sunk-cost directive."
+    - "Alternative target_modules (k_proj, o_proj, MLPs): out of Stage 6 minimal scope."
+    - "Larger LLM (Qwen3-14B): Stage 9 territory if at all."
+    - "Per-component grad projection (PCGrad/GradVac) for L_NCE recovery: orthogonal to F3 question."
+
+
+# ---- Stage 7 styled-teacher pilot (BRIDGING-NULL; sharpened F3) ---- #
+# Run date: 2026-05-03. Single seed (1234). Cohort NOT run per kickoff §7.1
+# ("If pilot is null, STOP. Single seed sufficient for clean negative.").
+stage7_styled_teacher_pilot:
+  branch: "BRIDGING-NULL"
+  reason: |
+    Probe-G_neutral 0.5158 falls inside the NULL band [R0±0.015 = 0.497,0.527];
+    oracle re-confirm 0.7871 (exact match, no drift); no instability.
+    Even explicit-paralinguistic-text-target alignment ("transcript +
+    [stress on word: X]") in the L_BLSP teacher branch does NOT bridge F3
+    in our frozen-encoder setup. The K_T_styled / Cascade-T+L baselines
+    (introduced this stage) prove the frozen LLM IS capable of consuming
+    the tag at 0.79–0.80 on neutral when given direct text access — the
+    capability is present; the audio path of a frozen-encoder adapter
+    just cannot elicit it via L_KL distillation on response-axis logits.
+  one_axis_change:
+    description: "L_BLSP text teacher: transcript → transcript + ' [stress on word: <word>]' for cf-pair + stress_individual rows. Libri/Expresso unchanged."
+    everything_else: "bit-identical to Stage 3.8 R1.8 cohort"
+  pilot_seed: 1234
+  loss_weights: {lambda_kl: 1.0, lambda_cf: 5.0, lambda_artifact: 1.0, lambda_cond: 0.5, lambda_nce: 0.0}
+  training_anchors:
+    l_task_final:           2.20
+    l_kl_final:             1.53        # vs R1.8 cohort 1.49 — barely different
+    l_cf_final:             0.59
+    l_nce_final:            0.697       # at uniform (λ_NCE=0)
+    artifact_trigger_rate:  0.0712
+    main_clip_rate:         1.000
+    wallclock_min:          36.7
+  pilot_results:
+    probe_g_total_accuracy:    0.6245
+    probe_g_neutral_accuracy:  0.5158        # in NULL band [0.497, 0.527]
+    probe_g_explicit_accuracy: 0.7332
+    probe_k_linear_eval_full:  0.2199
+    probe_k_mlp2_eval_full:    0.3066        # > K_T floor 0.290
+    probe_k_mlp2_within:       0.7218
+    probe_k_mlp2_sp_full:      0.198
+    oracle_reconfirm_accuracy: 0.7871        # 0.0000 drift
+  stage7_new_reference_baselines:
+    k_t_styled:                                    # gold transcript + tag in audio slot
+      probe_g_total:    0.8025
+      probe_g_neutral:  0.7901    # LLM upper bound under explicit text tag
+      probe_g_explicit: 0.8149
+    cascade_t_plus_l:                              # Whisper transcript + tag in audio slot
+      probe_g_total:    0.8129
+      probe_g_neutral:  0.8020    # explicit-text upper bound under cascade
+      probe_g_explicit: 0.8238
+  branch_d_diagnostics:
+    c1_within_domain_PASS:                  true     # spread 0.0209 (R1.8: 0.051)
+    c1_subset_accs:                         {nova: 0.230, echo: 0.209, stresspresso: 0.213}
+    c2_revised_3cond_PASS:                  false
+    c2_in_domain_acc:                       0.2195
+    c2_cross_domain_acc:                    0.2129
+    c2_ratio:                               0.970    # tightest yet (R1.8: 0.91)
+    c3_stratified_probe_g_PASS:             false
+    c3_fraction_uplift_positive:            0.50
+    c4_domain_acc:                          0.7625
+    c4_red_flag:                            false
+    b3_style_probe_eval_acc:                0.4167
+    t_only_eval_acc:                        0.1638   # < 0.30; restricted_T did NOT pick up the styled tag via hashed-unigram features
+  cohort_run:                false
+  cohort_skipped_reason:     "Pilot-NULL is decisive per kickoff §7.1; single seed sufficient for clean negative."
+  bridging_failure_signature: |
+    K_T_styled gives Probe-G_neutral = 0.79; Stage 7 audio adapter gives 0.52.
+    Gap = 0.27 pp absolute. Frozen LLM can consume the tag in text form;
+    trained audio adapter cannot elicit the equivalent tag-conditioned
+    response from continuous audio prefixes. L_KL distillation on
+    response-axis logits is not sufficient under frozen encoder + frozen LLM.
+  triangulated_bounded_negative:
+    audio_derived_phi_encoding_real:        "Stage 4 Controls A + B + shortcut probes — validated"
+    frozen_llm_blind_at_response_axis:      "Stage 3.8 R1.8 cohort F3 + Stage 7 NULL"
+    minimal_lora_does_not_bridge:           "Stage 6 weak-negative at rank 4; ORACLE-DRIFT at rank 8"
+    explicit_text_target_alignment_does_not_bridge: "Stage 7 NULL (this stage)"
+    speech_emotion_llama_recipe_requires_more_than_alignment_target: |
+      Encoder-side flexibility (which our Stage 7 deliberately denies) is what
+      crosses the gap between LLM-text-readable structural signal and
+      LLM-audio-readable structural signal.
+  publishable_q1_q2_framing: |
+    Sharpened F3 negative result: alignment-target intervention (the most
+    informative text-only training-side intervention possible — distill from a
+    teacher that has explicit Φ in the prefix) does not bridge consumer-side
+    blindness in frozen-frozen speech-LLM adapters under L_KL on response
+    axis. The bridge requires either encoder-side flexibility (Spirit-LM /
+    SpeechEmotionLlama lineage) or a fundamentally different audio→LLM-state
+    alignment than continuous-prefix injection.

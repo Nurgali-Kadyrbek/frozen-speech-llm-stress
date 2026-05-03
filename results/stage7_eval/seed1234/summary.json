@@ -1,0 +1,242 @@
+{
+  "seed": 1234,
+  "checkpoint": "outputs/stage7/A_R1p8_styled_seed1234.pt",
+  "adapter": {
+    "name": "adapter",
+    "n_rows": 4040,
+    "accuracy": 0.6245049504950495,
+    "accuracy_ci_lo": 0.5969583898688376,
+    "accuracy_ci_hi": 0.6507604348271971,
+    "signed_margin": 1.98570544624904,
+    "signed_margin_ci_lo": 1.6256739551344712,
+    "signed_margin_ci_hi": 2.339300946028023,
+    "accuracy_neutral": 0.5158415841584159,
+    "accuracy_neutral_ci_lo": 0.48514101410141014,
+    "accuracy_neutral_ci_hi": 0.54802028732285,
+    "accuracy_explicit": 0.7331683168316832,
+    "accuracy_explicit_ci_lo": 0.690226610848198,
+    "accuracy_explicit_ci_hi": 0.774378416472607,
+    "signed_margin_neutral": 0.16905940167679645,
+    "signed_margin_neutral_ci_lo": -0.09384004356487192,
+    "signed_margin_neutral_ci_hi": 0.4332857407817178,
+    "signed_margin_explicit": 3.8023514908212834,
+    "signed_margin_explicit_ci_lo": 3.173210620690205,
+    "signed_margin_explicit_ci_hi": 4.441817470160732
+  },
+  "K_T": {
+    "name": "K_T",
+    "n_rows": 4040,
+    "accuracy": 0.6487623762376238,
+    "accuracy_ci_lo": 0.6216816301763424,
+    "accuracy_ci_hi": 0.6730221963779293,
+    "signed_margin": 3.631574895004235,
+    "signed_margin_ci_lo": 3.0653604226344857,
+    "signed_margin_ci_hi": 4.151211388701373,
+    "accuracy_neutral": 0.5064356435643564,
+    "accuracy_neutral_ci_lo": 0.47809978572484113,
+    "accuracy_neutral_ci_hi": 0.5328358208955224,
+    "accuracy_explicit": 0.7910891089108911,
+    "accuracy_explicit_ci_lo": 0.7444820273631841,
+    "accuracy_explicit_ci_hi": 0.832186570258011,
+    "signed_margin_neutral": 0.2213490087207001,
+    "signed_margin_neutral_ci_lo": -0.20948727856122823,
+    "signed_margin_neutral_ci_hi": 0.6258025460430863,
+    "signed_margin_explicit": 7.041800781287769,
+    "signed_margin_explicit_ci_lo": 6.092844809120522,
+    "signed_margin_explicit_ci_hi": 7.942397889243764
+  },
+  "cascade_T": {
+    "name": "cascade_T",
+    "n_rows": 4040,
+    "accuracy": 0.6574257425742575,
+    "accuracy_ci_lo": 0.6285705574912892,
+    "accuracy_ci_hi": 0.6804991246075828,
+    "signed_margin": 3.729733916320423,
+    "signed_margin_ci_lo": 3.189364142381012,
+    "signed_margin_ci_hi": 4.238785874660588,
+    "accuracy_neutral": 0.5069306930693069,
+    "accuracy_neutral_ci_lo": 0.48291241561342063,
+    "accuracy_neutral_ci_hi": 0.5278661495478274,
+    "accuracy_explicit": 0.807920792079208,
+    "accuracy_explicit_ci_lo": 0.7628046942027209,
+    "accuracy_explicit_ci_hi": 0.8490681561085972,
+    "signed_margin_neutral": 0.16342820165180924,
+    "signed_margin_neutral_ci_lo": -0.2627226227222077,
+    "signed_margin_neutral_ci_hi": 0.5634597499033911,
+    "signed_margin_explicit": 7.2960396309890365,
+    "signed_margin_explicit_ci_lo": 6.297255559726473,
+    "signed_margin_explicit_ci_hi": 8.177137662063709
+  },
+  "oracle_reconfirm": {
+    "accuracy": 0.7871287128712872,
+    "accuracy_ci_lo": 0.7330012977025858,
+    "accuracy_ci_hi": 0.83839985218034,
+    "signed_margin": 7.627475325423892,
+    "signed_margin_ci_lo": 6.535172834902099,
+    "signed_margin_ci_hi": 8.619475320701373,
+    "n_correct": 159,
+    "n": 202
+  },
+  "probe_k": {
+    "linear": {
+      "fit_best_eval_acc": 0.2415795624256134,
+      "fit_final_eval_acc": 0.2195121943950653,
+      "eval_acc_full": 0.2195121943950653,
+      "eval_acc_within": 0.6120789647102356,
+      "sp_acc_full": 0.21287128329277039,
+      "sp_acc_within": 0.4900990128517151,
+      "robust_fp16": 0.2195121943950653,
+      "robust_sigma_01": 0.1614401787519455
+    },
+    "mlp2": {
+      "fit_best_eval_acc": 0.32055750489234924,
+      "fit_final_eval_acc": 0.30662021040916443,
+      "eval_acc_full": 0.30662021040916443,
+      "eval_acc_within": 0.7224158048629761,
+      "sp_acc_full": 0.19801980257034302,
+      "sp_acc_within": 0.4653465449810028,
+      "robust_fp16": 0.30662021040916443,
+      "robust_sigma_01": 0.16608594357967377
+    }
+  },
+  "C1_within_domain": {
+    "by_subset": {
+      "nova": 0.23004694283008575,
+      "echo": 0.20919540524482727,
+      "stresspresso": 0.21287128329277039
+    },
+    "n_per_subset": {
+      "nova": 426,
+      "echo": 435,
+      "stresspresso": 202
+    },
+    "cross_subset_mean": 0.21737121045589447,
+    "max_spread": 0.020851537585258484,
+    "above_chance_plus_10pp_floor": true,
+    "within_8pp_of_cross_mean": true,
+    "chance": 0.07692307692307693,
+    "PASS": true
+  },
+  "C2_cross_domain_transfer": {
+    "in_domain_accuracy": 0.2195121943950653,
+    "cross_domain_accuracy": 0.21287128329277039,
+    "cross_domain_ci_lo": 0.15841584158415842,
+    "cross_domain_ci_hi": 0.2722772277227723,
+    "ratio_cross_over_in": 0.9697469604338108,
+    "ci_above_chance": true,
+    "desc_only_floor": 0.3612079,
+    "cond_i_cross_above_floor_plus_005": false,
+    "cond_ii_ratio_above_080": true,
+    "cond_iii_in_above_floor_plus_010": false,
+    "PASS": false,
+    "chance": 0.07692307692307693
+  },
+  "C3_domain_stratified_probe_g": {
+    "n_strata": 4,
+    "fraction_uplift_positive": 0.5,
+    "strata": [
+      {
+        "speaker_id": "ex03",
+        "n": 580,
+        "accuracy_neutral_R1": 0.4879310344827586,
+        "uplift_vs_R0": -0.028405599180607755,
+        "uplift_positive": false
+      },
+      {
+        "speaker_id": "ex01",
+        "n": 310,
+        "accuracy_neutral_R1": 0.4870967741935484,
+        "uplift_vs_R0": -0.02923985946981794,
+        "uplift_positive": false
+      },
+      {
+        "speaker_id": "ex02",
+        "n": 510,
+        "accuracy_neutral_R1": 0.5411764705882353,
+        "uplift_vs_R0": 0.024839836924868908,
+        "uplift_positive": true
+      },
+      {
+        "speaker_id": "ex04",
+        "n": 620,
+        "accuracy_neutral_R1": 0.535483870967742,
+        "uplift_vs_R0": 0.01914723730437562,
+        "uplift_positive": true
+      }
+    ],
+    "r0_baseline_accuracy_neutral": 0.5163366336633664,
+    "PASS": false
+  },
+  "C4_domain_probe_on_adapter": {
+    "n_samples": 800,
+    "domain_acc_A_R1": 0.7625,
+    "domain_train_acc": 0.746875,
+    "n_per_source_used": 200,
+    "RED_FLAG_higher_than_raw_H": false
+  },
+  "B3_style_probe": {
+    "n_styles": 5,
+    "train_speakers": [
+      "ex01",
+      "ex02",
+      "ex03"
+    ],
+    "holdout_speaker": "ex04",
+    "n_train": 360,
+    "n_eval": 120,
+    "chance": 0.2,
+    "eval_acc": 0.4166666666666667,
+    "case": "i_encodes_style",
+    "interpretation": "adapter encodes style; L_artifact silence may be \u03b4 mis-set"
+  },
+  "t_only_diagnostic": {
+    "n_eval": 861,
+    "n_correct": 141,
+    "accuracy": 0.16376306620209058,
+    "lexical_contamination_flag": false
+  },
+  "K_T_styled": {
+    "name": "K_T_styled",
+    "n_rows": 4040,
+    "accuracy": 0.8024752475247525,
+    "accuracy_ci_lo": 0.7534995646766168,
+    "accuracy_ci_hi": 0.8447570054707032,
+    "signed_margin": 7.00677604781519,
+    "signed_margin_ci_lo": 6.059328048446125,
+    "signed_margin_ci_hi": 7.8979686362246735,
+    "accuracy_neutral": 0.7900990099009901,
+    "accuracy_neutral_ci_lo": 0.7398740901404309,
+    "accuracy_neutral_ci_hi": 0.8330335858585858,
+    "accuracy_explicit": 0.8148514851485148,
+    "accuracy_explicit_ci_lo": 0.7661646715660277,
+    "accuracy_explicit_ci_hi": 0.8566535881377331,
+    "signed_margin_neutral": 6.570854018938423,
+    "signed_margin_neutral_ci_lo": 5.624614927764723,
+    "signed_margin_neutral_ci_hi": 7.446968150761156,
+    "signed_margin_explicit": 7.442698076691958,
+    "signed_margin_explicit_ci_lo": 6.426856184430731,
+    "signed_margin_explicit_ci_hi": 8.410161038870378
+  },
+  "cascade_T_plus_L": {
+    "name": "cascade_T_plus_L",
+    "n_rows": 4040,
+    "accuracy": 0.8128712871287128,
+    "accuracy_ci_lo": 0.7646740231005775,
+    "accuracy_ci_hi": 0.8556412510656436,
+    "signed_margin": 7.345235195254335,
+    "signed_margin_ci_lo": 6.315323706097462,
+    "signed_margin_ci_hi": 8.294551671112453,
+    "accuracy_neutral": 0.801980198019802,
+    "accuracy_neutral_ci_lo": 0.7507462686567165,
+    "accuracy_neutral_ci_hi": 0.8461966076513557,
+    "accuracy_explicit": 0.8237623762376237,
+    "accuracy_explicit_ci_lo": 0.7775681935151827,
+    "accuracy_explicit_ci_hi": 0.8663415806754221,
+    "signed_margin_neutral": 6.95866340929919,
+    "signed_margin_neutral_ci_lo": 5.950037091005812,
+    "signed_margin_neutral_ci_hi": 7.9169589772214275,
+    "signed_margin_explicit": 7.731806981209481,
+    "signed_margin_explicit_ci_lo": 6.657679836323817,
+    "signed_margin_explicit_ci_hi": 8.72585062351694
+  }
+}

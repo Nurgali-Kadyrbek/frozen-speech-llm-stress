@@ -1,0 +1,11 @@
+{
+  "locked_wavlm_cell": "WavLM-L16",
+  "locked_acc_eval_full": 0.4239256680011749,
+  "locked_acc_eval_within": 0.7862949967384338,
+  "locked_acc_sp_full": 0.30693069100379944,
+  "locked_acc_sp_within": 0.6188119053840637,
+  "whisper_l22_linear": 0.23344947397708893,
+  "whisper_l32_linear": 0.4401858448982239,
+  "kt_linear": 0.2903600335121155,
+  "bottleneck_pattern": false
+}

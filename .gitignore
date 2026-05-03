@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Model weights (released to HuggingFace)
+*.pt
+*.bin
+*.safetensors
+
+# Local-only
+outputs/
+hf_cache/
+.claude/
+NOTE.md
+paper/
+docs/
+CITATION.cff

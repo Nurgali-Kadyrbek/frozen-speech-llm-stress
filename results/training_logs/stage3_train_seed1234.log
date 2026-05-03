@@ -1,0 +1,86 @@
+transformers==4.51.3, torch==2.6.0+cu124
+CUDA_VISIBLE_DEVICES=6
+  std_8B=0.02205 (cached, kickoff R2)
+
+========================================================================
+  Loading frozen LLM (Qwen/Qwen3-8B) in bf16
+========================================================================
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:00<00:00, 186.73it/s]
+  loaded in 6.0s, d_llm=4096
+
+========================================================================
+  Loading frozen speech encoder (microsoft/wavlm-large) in bf16
+========================================================================
+
+========================================================================
+  Building adapter with calibrated init
+========================================================================
+  adapter trainable params = 83.91M
+
+========================================================================
+  Building C_phi heads (full + T-only)
+========================================================================
+  C_phi_full params  = 3.15M
+  C_phi_t_only params = 2.10M
+  phi_embeds cached: shape=(13, 4096)
+
+========================================================================
+  Loading data pools
+========================================================================
+  Stress-17K probe-train pool: 3629 rows
+  LibriSpeech sampled: 6000 rows
+  Expresso sampled:    5799 rows
+  cf_pairs_train:    3666
+  cf_pairs_artifact: 6846
+  microbatch plan (32 per cycle): cf=16, stress_ind=7, libri=5, expresso=4
+  aug: apply_prob=1.0, codec_choices=('mu_law', 'mp3_64', 'mp3_128', 'opus_24', 'opus_48'), rms_norm=0.05
+
+========================================================================
+  Training (seed=1234, max_steps=400, grad_accum=32)
+========================================================================
+/raid/nurgaly/conda_envs/BTA/lib/python3.10/site-packages/torch/nn/functional.py:5962: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  warnings.warn(
+  step    1 lr=1.67e-07  L_task=24.663  L_KL=2.509  L_cf=5.627  L_art=0.000  L_cond=2.555  L_t=2.565  L_NCE=0.696  ratio=1.41  gnorm=98.66  sps=4.79
+  step   10 lr=1.67e-06  L_task=23.380  L_KL=2.449  L_cf=4.872  L_art=0.000  L_cond=2.563  L_t=2.554  L_NCE=0.694  ratio=1.41  gnorm=97.12  sps=5.76
+  step   20 lr=3.33e-06  L_task=19.374  L_KL=1.839  L_cf=3.792  L_art=0.000  L_cond=2.547  L_t=2.568  L_NCE=0.698  ratio=1.41  gnorm=77.01  sps=5.84
+  step   30 lr=5.00e-06  L_task=12.665  L_KL=1.342  L_cf=3.102  L_art=0.000  L_cond=2.549  L_t=2.558  L_NCE=0.694  ratio=1.41  gnorm=61.99  sps=5.92
+  step   40 lr=6.67e-06  L_task=6.281  L_KL=1.404  L_cf=1.523  L_art=0.000  L_cond=2.547  L_t=2.563  L_NCE=0.694  ratio=1.40  gnorm=70.19  sps=5.86
+  step   50 lr=8.33e-06  L_task=4.380  L_KL=1.500  L_cf=2.078  L_art=0.000  L_cond=2.539  L_t=2.576  L_NCE=0.695  ratio=1.40  gnorm=93.62  sps=5.85
+  step   60 lr=1.00e-05  L_task=3.313  L_KL=1.755  L_cf=1.294  L_art=0.000  L_cond=2.540  L_t=2.550  L_NCE=0.692  ratio=1.40  gnorm=22.24  sps=5.86
+  step   70 lr=1.17e-05  L_task=3.251  L_KL=1.721  L_cf=0.945  L_art=0.000  L_cond=2.518  L_t=2.544  L_NCE=0.695  ratio=1.40  gnorm=35.24  sps=5.88
+  step   80 lr=1.33e-05  L_task=3.059  L_KL=1.624  L_cf=0.859  L_art=0.000  L_cond=2.500  L_t=2.553  L_NCE=0.693  ratio=1.40  gnorm=20.70  sps=5.87
+  step   90 lr=1.50e-05  L_task=2.939  L_KL=1.419  L_cf=0.749  L_art=0.000  L_cond=2.521  L_t=2.545  L_NCE=0.694  ratio=1.40  gnorm=30.90  sps=5.86
+  step  100 lr=1.67e-05  L_task=2.627  L_KL=1.863  L_cf=0.766  L_art=0.000  L_cond=2.469  L_t=2.544  L_NCE=0.694  ratio=1.40  gnorm=27.76  sps=5.82
+  step  110 lr=1.83e-05  L_task=2.669  L_KL=1.560  L_cf=0.820  L_art=0.000  L_cond=2.448  L_t=2.536  L_NCE=0.693  ratio=1.40  gnorm=14.86  sps=5.81
+  step  120 lr=2.00e-05  L_task=2.704  L_KL=1.941  L_cf=0.746  L_art=0.000  L_cond=2.431  L_t=2.521  L_NCE=0.693  ratio=1.40  gnorm=11.58  sps=5.83
+  step  130 lr=2.17e-05  L_task=2.709  L_KL=1.593  L_cf=0.745  L_art=0.000  L_cond=2.384  L_t=2.510  L_NCE=0.693  ratio=1.40  gnorm=11.09  sps=5.83
+  step  140 lr=2.33e-05  L_task=2.805  L_KL=1.463  L_cf=0.785  L_art=0.000  L_cond=2.429  L_t=2.529  L_NCE=0.693  ratio=1.40  gnorm=14.25  sps=5.82
+  step  150 lr=2.50e-05  L_task=2.299  L_KL=1.642  L_cf=0.690  L_art=0.000  L_cond=2.343  L_t=2.528  L_NCE=0.693  ratio=1.40  gnorm=7.80  sps=5.82
+  step  160 lr=2.67e-05  L_task=2.139  L_KL=1.894  L_cf=0.678  L_art=0.000  L_cond=2.411  L_t=2.532  L_NCE=0.694  ratio=1.41  gnorm=22.75  sps=5.83
+  step  170 lr=2.83e-05  L_task=2.604  L_KL=1.303  L_cf=0.751  L_art=0.000  L_cond=2.219  L_t=2.500  L_NCE=0.694  ratio=1.41  gnorm=21.08  sps=5.83
+  step  180 lr=3.00e-05  L_task=2.333  L_KL=1.779  L_cf=0.695  L_art=0.000  L_cond=2.213  L_t=2.511  L_NCE=0.694  ratio=1.41  gnorm=7.34  sps=5.83
+  step  190 lr=3.17e-05  L_task=2.259  L_KL=1.602  L_cf=0.716  L_art=0.000  L_cond=2.237  L_t=2.483  L_NCE=0.694  ratio=1.41  gnorm=9.03  sps=5.83
+  step  200 lr=3.33e-05  L_task=2.410  L_KL=1.425  L_cf=0.694  L_art=0.000  L_cond=2.220  L_t=2.525  L_NCE=0.694  ratio=1.41  gnorm=10.11  sps=5.83
+  step  210 lr=3.50e-05  L_task=2.097  L_KL=1.928  L_cf=0.694  L_art=0.000  L_cond=2.219  L_t=2.483  L_NCE=0.694  ratio=1.42  gnorm=14.16  sps=5.83
+  step  220 lr=3.67e-05  L_task=2.203  L_KL=1.633  L_cf=0.743  L_art=0.000  L_cond=2.063  L_t=2.468  L_NCE=0.695  ratio=1.42  gnorm=6.66  sps=5.82
+  step  230 lr=3.83e-05  L_task=2.307  L_KL=1.587  L_cf=0.694  L_art=0.000  L_cond=2.058  L_t=2.458  L_NCE=0.694  ratio=1.42  gnorm=6.17  sps=5.83
+  step  240 lr=4.00e-05  L_task=2.306  L_KL=1.634  L_cf=0.720  L_art=0.000  L_cond=2.180  L_t=2.454  L_NCE=0.694  ratio=1.43  gnorm=6.36  sps=5.82
+  step  250 lr=4.17e-05  L_task=2.124  L_KL=1.488  L_cf=0.662  L_art=0.000  L_cond=2.202  L_t=2.412  L_NCE=0.693  ratio=1.43  gnorm=5.01  sps=5.82
+  step  260 lr=4.33e-05  L_task=2.186  L_KL=1.525  L_cf=0.621  L_art=0.025  L_cond=2.279  L_t=2.464  L_NCE=0.694  ratio=1.43  gnorm=15.83  sps=5.82
+  step  270 lr=4.50e-05  L_task=2.245  L_KL=1.521  L_cf=0.700  L_art=0.000  L_cond=2.152  L_t=2.431  L_NCE=0.693  ratio=1.43  gnorm=5.58  sps=5.83
+  step  280 lr=4.67e-05  L_task=2.387  L_KL=1.714  L_cf=0.715  L_art=0.000  L_cond=2.209  L_t=2.417  L_NCE=0.694  ratio=1.43  gnorm=4.97  sps=5.83
+  step  290 lr=4.83e-05  L_task=2.609  L_KL=1.394  L_cf=0.693  L_art=0.009  L_cond=2.227  L_t=2.409  L_NCE=0.694  ratio=1.43  gnorm=22.79  sps=5.83
+  step  300 lr=5.00e-05  L_task=2.373  L_KL=1.511  L_cf=0.713  L_art=0.000  L_cond=2.068  L_t=2.365  L_NCE=0.694  ratio=1.43  gnorm=6.50  sps=5.83
+  step  310 lr=4.90e-05  L_task=2.143  L_KL=1.267  L_cf=0.679  L_art=0.000  L_cond=2.109  L_t=2.377  L_NCE=0.693  ratio=1.43  gnorm=4.08  sps=5.82
+  step  320 lr=4.58e-05  L_task=2.439  L_KL=1.319  L_cf=0.760  L_art=0.000  L_cond=2.021  L_t=2.293  L_NCE=0.694  ratio=1.43  gnorm=16.04  sps=5.82
+  step  330 lr=4.05e-05  L_task=2.175  L_KL=1.385  L_cf=0.711  L_art=0.000  L_cond=2.504  L_t=2.494  L_NCE=0.693  ratio=1.43  gnorm=4.82  sps=5.82
+  step  340 lr=3.38e-05  L_task=2.372  L_KL=1.570  L_cf=0.713  L_art=0.000  L_cond=2.149  L_t=2.365  L_NCE=0.694  ratio=1.43  gnorm=3.99  sps=5.82
+  step  350 lr=2.63e-05  L_task=2.409  L_KL=1.457  L_cf=0.694  L_art=0.008  L_cond=2.022  L_t=2.313  L_NCE=0.694  ratio=1.43  gnorm=4.22  sps=5.81
+  step  360 lr=1.87e-05  L_task=2.315  L_KL=1.363  L_cf=0.652  L_art=0.079  L_cond=1.981  L_t=2.247  L_NCE=0.694  ratio=1.43  gnorm=3.90  sps=5.82
+  step  370 lr=1.17e-05  L_task=2.266  L_KL=1.526  L_cf=0.678  L_art=0.000  L_cond=2.122  L_t=2.312  L_NCE=0.694  ratio=1.43  gnorm=4.04  sps=5.82
+  step  380 lr=6.14e-06  L_task=2.127  L_KL=1.386  L_cf=0.670  L_art=0.000  L_cond=2.027  L_t=2.281  L_NCE=0.694  ratio=1.43  gnorm=3.71  sps=5.82
+  step  390 lr=2.45e-06  L_task=2.009  L_KL=1.382  L_cf=0.675  L_art=0.000  L_cond=2.007  L_t=2.272  L_NCE=0.694  ratio=1.43  gnorm=3.57  sps=5.82
+  step  400 lr=1.01e-06  L_task=2.165  L_KL=1.529  L_cf=0.656  L_art=0.000  L_cond=2.141  L_t=2.288  L_NCE=0.693  ratio=1.43  gnorm=3.58  sps=5.82
+
+  done: 400 optimizer steps over 2198.8s  (5.82 samples/s)
+  saved → /home/nurgaly/experiment/Beyond_Transcript_Alignment/outputs/stage3/A_R1_seed1234.pt  (356.7 MB)
